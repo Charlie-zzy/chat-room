@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Charlie的屑聊天软件</title>
+    <script src="http://pv.sohu.com/cityjson"></script>
+    <script>
+        function $(param) {
+            return document.getElementById(param)
+        }
+
+        var ws, nickname, timer
+
+        function connect() {
+            if ($('connect').innerText === '登录') {
+                ws = new WebSocket(`ws://${$('url').value}:${$('port').value}`)
+                timer = new Date().getTime()
+                $('connect').disabled = true
+                $('connect').innerText = '连接中...'
+                ws.onerror = error => {
+                    $('connect').disabled = false
+                    $('send').disabled = true
+                    $('info').innerText = `连接失败！${error}`
+                    $('connect').innerText = '登录'
+                }
+                ws.onopen = () => {
+                    $('info').innerText = '已登录!'
+                    $('send').disabled = false
+                    $('send').focus()
+                    $('connect').disabled = false
+                    $('connect').innerText = '退出登录'
+                    ws.send(`j@${returnCitySN.cip}@${nickname}`)
+                }
+                ws.onmessage = data => {
+                    lasttime = new Date().getTime()
+                    console.log(`${lasttime - timer}ms ${data.data.replace('@', ' ')}`);
+                    data = data.data.split('@')
+                    if (data[0] === 'j') $('chatbox').innerHTML += `<p style="color: rgb(100, 200, 0)">${data[2]} joined~</p>`
+                    else if (data[0] === 'm') $('chatbox').innerHTML += `<p style="color: rgb(100, 200, 0)">当前共有${data[1]}人在线：${data[2]}</p>`
+                    else if (data[0] === 'q') $('chatbox').innerHTML += `<p style="color: rgb(230, 20, 0)">${data[1]} quited.</p>`
+                    else if (data[2] === nickname) $('chatbox').innerHTML += `<p style="color: #002c45"><az style="color: rgb(100, 200, 0)">${data[2]}</az> > ${data[1]}</p>`
+                    else $('chatbox').innerHTML += `<p style="color: #002c45">${data[2]} > ${data[1]}</p>`
+                }
+                ws.onclose = event => {
+                    $('info').innerText = `已断开连接! ${event.reason}`
+                    $('connect').innerText = '登录'
+                    $('connect').disabled = false
+                    $('send').disabled = true
+                }
+            } else {
+                $('connect').innerText = '登出中...'
+                $('connect').disabled = true
+                ws.close()
+            }
+        }
+
+        function send() {
+            timer = new Date().getTime()
+            ws.send(`c@${$('data').value}`)
+        }
+    </script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #e0e0e0;
+            overflow: hidden;
+        }
+
+        button {
+            border-radius: .5vh;
+            border: .1vh solid #3f4142;
+            height: 3vh;
+            width: 10vh;
+            font: 600 1.6vh '';
+            color: #001f3f;
+            margin: 1vh;
+            user-select: none;
+        }
+
+        button:disabled {
+            opacity: 40%;
+        }
+
+        #info {
+            position: absolute;
+            bottom: 2vh;
+            font-size: 2vh;
+            color: red;
+        }
+
+        input {
+            border-radius: .3vh;
+            border: none;
+            outline: none;
+            border-bottom: 0.2vh solid rgb(80, 80, 170);
+            font: 600 1.4vh '';
+            width: 16vh;
+            height: 2.5vh;
+            margin: 0.4vh;
+            padding-left: 0.4vh;
+        }
+
+        .block {
+            border-radius: 1vh;
+            background: #f0f0f0;
+            box-shadow: .5vh .5vh 1vh #1f2d4288,
+                -.2vh -.2vh 1vh rgb(204, 204, 204);
+            height: 5vh;
+            width: 32vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            bottom: 1vh;
+            position: absolute;
+        }
+
+        #url {
+            width: 12vh;
+        }
+
+        #port {
+            width: 4.5vh;
+        }
+
+        #chatbox {
+            position: absolute;
+            bottom: 7vh;
+            left: 1.5vh;
+        }
+
+        .right {
+            left: 1vh;
+            z-index: 514;
+        }
+
+        .left {
+            z-index: 114;
+            right: 1vh;
+        }
+
+        .message {
+            position: absolute;
+            left: 1vh;
+        }
+
+        p {
+            margin: 0;
+            width: max-content;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="block left">
+        <input id="url" value="20.205.44.60">
+        <strong>:</strong>
+        <input id="port" value="8080">
+        <button id="connect" onclick="connect()">登录</button>
+    </div>
+    <p id="info"></p>
+    <div class="block right">
+        <div id="chatbox"></div>
+        <div class="message">
+            <input id="data" value="qwq~" onkeyup="value=value.replace(/[\[<@>\];]/gm,'') " onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[\[<@>\];]/gm,''))">
+            <button id="send" onclick="send()" disabled>发送</button>
+        </div>
+    </div>
+    <script>
+        $('connect').focus()
+        function az(param, callback) {
+            $(param).addEventListener('keyup', e => {
+                e.preventDefault()
+                if(e.keyCode === 13 && !$(callback).disabled) $(callback).click()
+            })
+        }
+        az('data', 'send')
+        az('url', 'connect')
+        az('port', 'connect')
+        nickname = `${prompt("请输入你的昵称：")}`
+        if(nickname === 'null') nickname = returnCitySN.cip
+    </script>
+</body>
+
+</html>
